@@ -1,4 +1,5 @@
 import axios from "axios";
+import { apiPath, apiBase } from "../config.js";
 
 let productsData = [];
 let cartData = [];

@@ -1,2 +1,4 @@
-let apiPath = "ollie";
-let apiBase = "https://livejs-api.hexschool.io";
+const apiPath = "ollie";
+const apiBase = "https://livejs-api.hexschool.io";
+
+export { apiPath, apiBase };
