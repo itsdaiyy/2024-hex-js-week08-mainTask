@@ -17,7 +17,7 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/c3/0.7.18/c3.css"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./src/style.css" />
+    <link rel="stylesheet" href="./src/style/pages/index.css" />
     <title>Hex JS 秋季班 | 最終關卡</title>
   </head>
   <body>
@@ -33,7 +33,7 @@
         </ul>
       </div>
     </nav>
-    <section class="wrap display-none" id="bedAdvantage">
+    <section class="wrap" id="bedAdvantage">
       <div class="banner">
         <h2 class="banner-text">窩窩家居<br />跟您一起品味生活</h2>
       </div>
@@ -65,7 +65,7 @@
         </li>
       </ul>
     </section>
-    <section class="furniture-compare display-none">
+    <section class="furniture-compare">
       <div class="wrap">
         <h3 class="section-title">家具比較</h3>
         <div class="overflowWrap">
@@ -112,7 +112,7 @@
         </div>
       </div>
     </section>
-    <section class="recommendation display-none" id="recommendation">
+    <section class="recommendation" id="recommendation">
       <div class="wrap">
         <h3 class="section-title">好評推薦</h3>
         <div class="recommendation-wall">
@@ -262,7 +262,7 @@
         </div>
       </div>
     </section>
-    <section class="transport display-none" id="transport">
+    <section class="transport" id="transport">
       <h3 class="section-title">運送方式</h3>
       <ul class="transport-intro">
         <li class="transport-card">
@@ -307,7 +307,19 @@
     <section class="shoppingCart">
       <h3 class="section-title">我的購物車</h3>
       <div class="overflowWrap">
-        <table class="shoppingCart-table"></table>
+        <table class="shoppingCart-table">
+          <thead>
+            <tr>
+              <th width="40%">品項</th>
+              <th width="15%">單價</th>
+              <th width="15%">數量</th>
+              <th width="15%">金額</th>
+              <th width="15%"></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+          <tfoot></tfoot>
+        </table>
       </div>
     </section>
     <section class="orderInfo wrap" id="orderInfo">

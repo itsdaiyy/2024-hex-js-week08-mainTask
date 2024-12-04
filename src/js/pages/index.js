@@ -1,30 +1,17 @@
 import axios from "axios";
 import { apiPath, apiBase } from "../config.js";
+import { validate } from "validate.js";
 
 let productsData = [];
 let cartData = [];
-let orderData = [];
 
 const productsSection = document.querySelector(".productDisplay");
 const productsList = document.querySelector(".productWrap");
-const cartList = document.querySelector(".shoppingCart-table");
-// const orderList = document.querySelector(".order-list");
+const cartTableBody = document.querySelector(".shoppingCart-table tbody");
+const cartTableFoot = document.querySelector(".shoppingCart-table tFoot");
+const orderForm = document.querySelector(".orderInfo-form");
 
-// function getOrders() {
-//   axios
-//     .get(`${apiBase}/api/livejs/v1/admin/${apiPath}/orders`, {
-//       headers: {
-//         Authorization: `ECv7xxOCBre83U2b0aU2vrrqCBw1`,
-//       },
-//     })
-//     .then(function (response) {
-//       console.log(response.data.orders);
-//       orderData = response.data.orders;
-//       renderOrderList();
-//     });
-// }
-
-// 取得資料邏輯
+// 產品 - 取得資料邏輯
 function getProducts() {
   axios
     .get(`${apiBase}/api/livejs/v1/customer/${apiPath}/products`)
@@ -37,7 +24,7 @@ function getProducts() {
     });
 }
 
-// 渲染資料邏輯
+// 產品 - 渲染
 function renderProductsList(data) {
   let str = "";
   data.forEach(function (item) {
@@ -57,7 +44,7 @@ function renderProductsList(data) {
   productsList.innerHTML = str;
 }
 
-// 產品列表依類別篩選
+// 產品 - 列表依類別篩選
 function filterProducts(type) {
   console.log(type);
   if (type === "全部") {
@@ -71,14 +58,12 @@ function filterProducts(type) {
   console.log(filterData);
 }
 
-// -------------------
-// 購物車邏輯
+// 購物車
 function getCarts() {
   axios
     .get(`${apiBase}/api/livejs/v1/customer/${apiPath}/carts`)
     .then((res) => {
       cartData = res.data.carts;
-      console.log("getCarts: ", cartData);
       renderCartList(cartData);
     })
     .catch((err) => {
@@ -96,7 +81,7 @@ function calcCartTotalPrice(data) {
 function renderCartItem({ quantity, product, id: cartItemId }) {
   const { title, price, images } = product;
   return `
-          <tr>
+          <tr data-id="${cartItemId}">
             <td>
               <div class="cardItem-title">
                 <img src="${images}" alt="${title}" />
@@ -104,26 +89,22 @@ function renderCartItem({ quantity, product, id: cartItemId }) {
               </div>
             </td>
             <td>NT$${price}</td>
-            <td>${quantity}</td>
+            <td>
+             <button class="material-icons quantity-btn" type="button" data-action="add-item-quantity"> add </button>
+            <span>${quantity}</span>
+            <button class="material-icons quantity-btn" type="button" data-action="minus-item-quantity"> remove </button>
+            </td>
             <td>NT$${price * quantity}</td>
             <td class="discardBtn">
-             <button class="material-icons" data-action="delete-item" data-id="${cartItemId}"> clear </button>
+             <button class="material-icons" data-action="delete-item"> clear </button>
             </td>
           </tr>`;
 }
 
 function renderCartList(data) {
-  const cartTableHead = `<tr>
-            <th width="40%">品項</th>
-            <th width="15%">單價</th>
-            <th width="15%">數量</th>
-            <th width="15%">金額</th>
-            <th width="15%"></th>
-          </tr>`;
-
   const cartItems = data.map(renderCartItem).join("");
   const totalPrice = calcCartTotalPrice(data);
-  const cartTableFoot = `<tr>
+  const cartTableFootStr = `<tr>
             <td>
               <button class="discardAllBtn" data-action="clear-cart">刪除所有品項</button>
             </td>
@@ -135,10 +116,11 @@ function renderCartList(data) {
             <td>NT$${totalPrice}</td>
           </tr>`;
 
-  cartList.innerHTML = cartTableHead + cartItems + cartTableFoot;
+  cartTableBody.innerHTML = cartItems;
+  cartTableFoot.innerHTML = cartTableFootStr;
 }
 
-// 新增產品邏輯
+// 購物車 - 新增商品
 function addCartItem(productId) {
   const existItem = cartData.find((item) => item.product.id === productId);
   const newQuantity = existItem ? existItem.quantity + 1 : 1;
@@ -159,7 +141,7 @@ function addCartItem(productId) {
     });
 }
 
-// 刪除「購物車內全部商品」邏輯
+// 購物車 - 刪除「購物車內全部商品」邏輯
 function clearCart() {
   if (!cartData.length) return;
   axios
@@ -174,7 +156,7 @@ function clearCart() {
     });
 }
 
-// 刪除「購物車特定品項」邏輯
+// 購物車 - 刪除「購物車特定品項」邏輯
 function deleteCartItem(cartItemId) {
   axios
     .delete(`${apiBase}/api/livejs/v1/customer/${apiPath}/carts/${cartItemId}`)
@@ -199,84 +181,121 @@ function handleProductsSectionEvent(e) {
 }
 
 function handleCartEvent(e) {
-  const target = e.target;
-  const action = e.target.dataset.action;
+  const { dataset } = e.target;
+  const { action } = dataset;
+  const id = e.target.closest("tr").getAttribute("data-id");
+
+  if (!action && !id) return;
+
   if (action === "delete-item") {
-    console.log(target.dataset.id);
-    deleteCartItem(target.dataset.id);
+    console.log("delete-item", id);
+    deleteCartItem(id);
+    return;
   }
+
+  if (action === "clear-cart") {
+    clearCart();
+    return;
+  }
+}
+
+// 訂單 -（客戶）送出訂單邏輯
+function submitOrder(order) {
+  if (cartData.length === 0) {
+    console.log("請先新增品項至購物車");
+    return;
+  }
+
+  const orderData = {
+    data: {
+      user: {
+        name: order["姓名"],
+        tel: order["電話"],
+        email: order["Email"],
+        address: order["寄送地址"],
+        payment: order["交易方式"],
+      },
+    },
+  };
+
+  axios
+    .post(`${apiBase}/api/livejs/v1/customer/${apiPath}/orders`, orderData)
+    .then((res) => {
+      getCarts();
+    })
+    .catch((err) => {
+      console.log(err.response.data.message || "送出訂單失敗");
+    })
+    .finally(() => {
+      orderForm.reset();
+    });
+}
+
+function checkOrderFormValue() {
+  const constraints = {
+    Email: {
+      presence: { allowEmpty: false, message: "必填！" },
+      email: {
+        message: "請輸入正確 email 格式",
+      },
+    },
+    交易方式: {
+      presence: { message: "必填！" },
+    },
+    姓名: {
+      presence: { message: "必填！" },
+    },
+    寄送地址: {
+      presence: { message: "必填！" },
+    },
+    電話: {
+      presence: { message: "必填！" },
+    },
+  };
+
+  const errors = validate(orderForm, constraints);
+  return errors;
+}
+
+function handleSubmitOrder(e) {
+  e.preventDefault();
+
+  // 清除錯誤訊息
+  document
+    .querySelectorAll(".orderInfo-message.block")
+    .forEach((infoMsg) => infoMsg.classList.remove("block"));
+
+  const errors = checkOrderFormValue();
+
+  if (errors) {
+    Object.keys(errors).forEach((key) => {
+      const errorMsg = document.querySelector(`[data-message="${key}"]`);
+      errorMsg.classList.add("block");
+    });
+    return;
+  }
+
+  const formData = new FormData(orderForm);
+  const orderData = Object.fromEntries(formData.entries());
+
+  submitOrder(orderData);
 }
 
 // 初始化
 function init() {
   getProducts();
   getCarts();
-  // getOrders();
 
   // 監聽購物車
-  cartList.addEventListener("click", (e) => {
-    const { tagName, dataset } = e.target;
-    const { action } = dataset;
-
-    if (tagName !== "BUTTON" || !action) return;
-    if (action === "clear-cart") {
-      clearCart();
-    }
-  });
+  cartTableBody.addEventListener("click", handleCartEvent);
+  cartTableFoot.addEventListener("click", handleCartEvent);
 
   // 監聽商品列表的按鈕;
   productsSection.addEventListener("click", handleProductsSectionEvent);
   productsSection.addEventListener("change", handleProductsSectionEvent);
 
-  // 監聽產品列表
-  cartList.addEventListener("click", handleCartEvent);
+  // 監聽送出訂單
+  orderForm.addEventListener("submit", handleSubmitOrder);
 }
 
 init();
-
-// function renderOrderList() {
-//   const str = orderData.reduce((acc, cur, curIndex) => {
-//     const { user, quantity, total, paid } = cur;
-//     const { name, payment } = user;
-//     return (acc += `<tr>
-//       <th scope="row">${curIndex + 1}</th>
-//       <td>${name}</td>
-//       <td>${payment}</td>
-//       <td>${quantity}</td>
-//       <td>${total}</td>
-//        <td>${paid ? "已付款" : "尚未付款"}</td>
-//     </tr>`);
-//   }, "");
-
-//   orderList.innerHTML = str;
-// }
-
-// 送出訂單邏輯
-// function submitOrder() {
-//   if (cartData.length === 0) {
-//     console.log("請先新增品項至購物車");
-//     return;
-//   }
-//   const orderData = {
-//     data: {
-//       user: {
-//         name: "test3",
-//         tel: "0956-283-284",
-//         email: "test@gmail.com",
-//         address: "台中",
-//         payment: "xxxxxxx",
-//       },
-//     },
-//   };
-
-//   axios
-//     .post(`${apiBase}/api/livejs/v1/customer/${apiPath}/orders`, orderData)
-//     .then((res) => {
-//       console.log(res.products);
-//       getCarts();
-//       getOrders();
-//     })
-//     .catch((err) => {
-//       console.log(err.response.data.message || "送出訂單失敗");
-//     });
-// }
