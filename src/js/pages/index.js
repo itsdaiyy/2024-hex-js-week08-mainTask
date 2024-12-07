@@ -141,6 +141,40 @@ function addCartItem(productId) {
     });
 }
 
+// 購物車 - 更新數量
+function updateCartQuantity(cartItemId, action) {
+  // 取得原本的 quantity
+  let originQuantity = cartData.filter(
+    (product) => product.id === cartItemId
+  )[0].quantity;
+
+  const rules = {
+    add: (quantity) => quantity + 1,
+    minus: (quantity) => {
+      if (quantity <= 1) {
+        deleteCartItem(cartItemId);
+        return;
+      }
+      return quantity - 1;
+    },
+  };
+
+  axios
+    .patch(`${apiBase}/api/livejs/v1/customer/${apiPath}/carts`, {
+      data: {
+        id: cartItemId,
+        quantity: rules[action](originQuantity),
+      },
+    })
+    .then((res) => {
+      cartData = res.data.carts;
+      renderCartList(cartData);
+    })
+    .catch((err) => {
+      console.log(err);
+    });
+}
+
 // 購物車 - 刪除「購物車內全部商品」邏輯
 function clearCart() {
   if (!cartData.length) return;
@@ -188,8 +222,17 @@ function handleCartEvent(e) {
   if (!action && !id) return;
 
   if (action === "delete-item") {
-    console.log("delete-item", id);
     deleteCartItem(id);
+    return;
+  }
+
+  if (action === "add-item-quantity") {
+    updateCartQuantity(id, "add");
+    return;
+  }
+
+  if (action === "minus-item-quantity") {
+    updateCartQuantity(id, "minus");
     return;
   }
 

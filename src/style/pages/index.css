@@ -650,10 +650,6 @@
 }
 /*# sourceMappingURL=all.css.map */
 
-.display-none {
-  display: none;
-}
-
 /* cart quantity btn */
 .quantity-btn {
   vertical-align: middle;
@@ -667,8 +663,4 @@
 .quantity-btn:hover {
   color: #6a33f8;
   transition-duration: 0s;
-}
-
-.block {
-  display: block;
 }
