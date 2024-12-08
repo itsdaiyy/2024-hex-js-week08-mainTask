@@ -1,7 +1,7 @@
 import axios from "axios";
 import Swal from "sweetalert2";
-import { customerApi } from "../config.js";
 import { validate } from "validate.js";
+import { customerApi } from "../config.js";
 import { formatNumber } from "../helpers.js";
 
 let productsData = [];
@@ -34,7 +34,11 @@ function getProducts() {
       renderProductsList(productsData);
     })
     .catch((err) => {
-      console.log(err.response.data.message || "取得產品失敗");
+      console.log(err.response.data.message);
+      Toast.fire({
+        icon: "error",
+        title: "取得產品失敗",
+      });
     });
 }
 
@@ -79,7 +83,11 @@ function getCarts() {
       renderCartList(cartData);
     })
     .catch((err) => {
-      console.log(err || "取得購物車失敗");
+      console.log(err.response.data.message);
+      Toast.fire({
+        icon: "error",
+        title: "取得購物車失敗",
+      });
     });
 }
 
@@ -163,7 +171,11 @@ function addCartItem(productId) {
       addCardBtn.forEach((btn) => btn.classList.remove("disabled"));
     })
     .catch((err) => {
-      console.log(err || "新增購物車失敗");
+      console.log(err.response.data.message);
+      Toast.fire({
+        icon: "error",
+        title: "新增商品失敗",
+      });
     });
 }
 
@@ -196,7 +208,11 @@ function updateCartQuantity(cartItemId, action) {
       renderCartList(cartData);
     })
     .catch((err) => {
-      console.log(err);
+      console.log(err.response.data.message);
+      Toast.fire({
+        icon: "error",
+        title: "更新購物車數量失敗",
+      });
     });
 }
 
@@ -211,6 +227,10 @@ function clearCart() {
     })
     .catch((err) => {
       console.log(err.response.data.message);
+      Toast.fire({
+        icon: "error",
+        title: "刪除購物車內全部商品失敗",
+      });
     });
 }
 
@@ -223,7 +243,11 @@ function deleteCartItem(cartItemId) {
       renderCartList(cartData);
     })
     .catch((err) => {
-      console.log(err.response.data.message || "刪除商品失敗");
+      console.log(err.response.data.message);
+      Toast.fire({
+        icon: "error",
+        title: "刪除商品失敗",
+      });
     });
 }
 
@@ -293,7 +317,7 @@ function submitOrder(order) {
       });
     })
     .catch((err) => {
-      console.log(err);
+      console.log(err.response.data.message);
       Toast.fire({
         icon: "error",
         title: "送出訂單失敗",

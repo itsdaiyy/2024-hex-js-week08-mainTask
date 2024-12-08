@@ -176,10 +176,12 @@ function handleOrderListEvent(e) {
 
   if (action === "update-paid-state") {
     updatePaidState(id);
+    return;
   }
 
   if (action === "delete-order") {
     deleteOrderById(id);
+    return;
   }
 }
 
