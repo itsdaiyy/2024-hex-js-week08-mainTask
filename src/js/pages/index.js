@@ -103,9 +103,9 @@ function renderCartItem({ quantity, product, id: cartItemId }) {
             </td>
             <td>NT$${formatNumber(price)}</td>
             <td>
-             <button class="material-icons quantity-btn" type="button" data-action="add-item-quantity"> add </button>
+              <button class="material-icons quantity-btn" type="button" data-action="minus-item-quantity"> remove </button>
             <span>${quantity}</span>
-            <button class="material-icons quantity-btn" type="button" data-action="minus-item-quantity"> remove </button>
+            <button class="material-icons quantity-btn" type="button" data-action="add-item-quantity"> add </button>
             </td>
             <td>NT$${formatNumber(totalPrice)}</td>
             <td class="discardBtn">

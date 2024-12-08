@@ -95,7 +95,6 @@ function deleteOrderById(id) {
 // 刪除所有訂單
 function handleDeleteAllOrders() {
   if (ordersData.length <= 0) return;
-  console.log(clearAllOrdersBtn);
   adminInstance
     .delete(`/orders`)
     .then((res) => {
