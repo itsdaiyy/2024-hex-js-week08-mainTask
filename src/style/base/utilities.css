@@ -1,12 +1,16 @@
 .block {
-  display: block;
+  display: block !important;
 }
 
-/* dev stage */
-.display-none {
+.none {
   display: none;
 }
 
 .warn {
-  color: brown;
+  color: brown !important;
+}
+
+.disabled {
+  pointer-events: none;
+  opacity: 0.5;
 }

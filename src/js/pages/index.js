@@ -1,6 +1,8 @@
 import axios from "axios";
-import { apiPath, apiBase } from "../config.js";
+import Swal from "sweetalert2";
+import { customerApi } from "../config.js";
 import { validate } from "validate.js";
+import { formatNumber } from "../helpers.js";
 
 let productsData = [];
 let cartData = [];
@@ -11,10 +13,22 @@ const cartTableBody = document.querySelector(".shoppingCart-table tbody");
 const cartTableFoot = document.querySelector(".shoppingCart-table tFoot");
 const orderForm = document.querySelector(".orderInfo-form");
 
+const Toast = Swal.mixin({
+  toast: true,
+  position: "top-end",
+  showConfirmButton: false,
+  timer: 2000,
+  timerProgressBar: true,
+  didOpen: (toast) => {
+    toast.onmouseenter = Swal.stopTimer;
+    toast.onmouseleave = Swal.resumeTimer;
+  },
+});
+
 // 產品 - 取得資料邏輯
 function getProducts() {
   axios
-    .get(`${apiBase}/api/livejs/v1/customer/${apiPath}/products`)
+    .get(`${customerApi}/products`)
     .then((res) => {
       productsData = res.data.products;
       renderProductsList(productsData);
@@ -26,10 +40,10 @@ function getProducts() {
 
 // 產品 - 渲染
 function renderProductsList(data) {
-  let str = "";
-  data.forEach(function (item) {
-    const { id, title, category, origin_price, price, images } = item;
-    str += `<li class="productCard">
+  productsList.innerHTML = data
+    .map((item) => {
+      const { id, title, category, origin_price, price, images } = item;
+      return `<li class="productCard">
           <h4 class="productType">${category}</h4>
           <img
             src="${images}"
@@ -37,16 +51,15 @@ function renderProductsList(data) {
           />
           <button class="addCardBtn" data-action="add-to-cart" data-id="${id}">加入購物車</button>
           <h3>${title}</h3>
-          <del class="originPrice">NT$${origin_price}</del>
-          <p class="nowPrice">NT$${price}</p>
+          <del class="originPrice">NT$${formatNumber(origin_price)}</del>
+          <p class="nowPrice">NT$${formatNumber(price)}</p>
         </li>`;
-  });
-  productsList.innerHTML = str;
+    })
+    .join("");
 }
 
 // 產品 - 列表依類別篩選
 function filterProducts(type) {
-  console.log(type);
   if (type === "全部") {
     renderProductsList(productsData);
     return;
@@ -55,13 +68,12 @@ function filterProducts(type) {
     (product) => product.category === type
   );
   renderProductsList(filterData);
-  console.log(filterData);
 }
 
 // 購物車
 function getCarts() {
   axios
-    .get(`${apiBase}/api/livejs/v1/customer/${apiPath}/carts`)
+    .get(`${customerApi}/carts`)
     .then((res) => {
       cartData = res.data.carts;
       renderCartList(cartData);
@@ -80,6 +92,7 @@ function calcCartTotalPrice(data) {
 
 function renderCartItem({ quantity, product, id: cartItemId }) {
   const { title, price, images } = product;
+  const totalPrice = price * quantity;
   return `
           <tr data-id="${cartItemId}">
             <td>
@@ -88,13 +101,13 @@ function renderCartItem({ quantity, product, id: cartItemId }) {
                 <p>${title}</p>
               </div>
             </td>
-            <td>NT$${price}</td>
+            <td>NT$${formatNumber(price)}</td>
             <td>
              <button class="material-icons quantity-btn" type="button" data-action="add-item-quantity"> add </button>
             <span>${quantity}</span>
             <button class="material-icons quantity-btn" type="button" data-action="minus-item-quantity"> remove </button>
             </td>
-            <td>NT$${price * quantity}</td>
+            <td>NT$${formatNumber(totalPrice)}</td>
             <td class="discardBtn">
              <button class="material-icons" data-action="delete-item"> clear </button>
             </td>
@@ -102,6 +115,11 @@ function renderCartItem({ quantity, product, id: cartItemId }) {
 }
 
 function renderCartList(data) {
+  if (data.length <= 0) {
+    cartTableBody.innerHTML = `<tr><td>購物車內沒有商品，請先加入商品至購物車</td></tr>`;
+    cartTableFoot.innerHTML = "";
+    return;
+  }
   const cartItems = data.map(renderCartItem).join("");
   const totalPrice = calcCartTotalPrice(data);
   const cartTableFootStr = `<tr>
@@ -113,7 +131,7 @@ function renderCartList(data) {
             <td>
               <p>總金額</p>
             </td>
-            <td>NT$${totalPrice}</td>
+            <td>NT$${formatNumber(totalPrice)}</td>
           </tr>`;
 
   cartTableBody.innerHTML = cartItems;
@@ -124,17 +142,25 @@ function renderCartList(data) {
 function addCartItem(productId) {
   const existItem = cartData.find((item) => item.product.id === productId);
   const newQuantity = existItem ? existItem.quantity + 1 : 1;
+
+  const addCardBtn = document.querySelectorAll(".addCardBtn");
+  addCardBtn.forEach((btn) => btn.classList.add("disabled"));
+
   axios
-    .post(`${apiBase}/api/livejs/v1/customer/${apiPath}/carts`, {
+    .post(`${customerApi}/carts`, {
       data: {
         productId: productId,
         quantity: newQuantity,
       },
     })
     .then((res) => {
+      Toast.fire({
+        icon: "success",
+        title: "商品成功加入購物車",
+      });
       cartData = res.data.carts;
-      console.log("addItem: ", cartData);
       renderCartList(cartData);
+      addCardBtn.forEach((btn) => btn.classList.remove("disabled"));
     })
     .catch((err) => {
       console.log(err || "新增購物車失敗");
@@ -144,23 +170,22 @@ function addCartItem(productId) {
 // 購物車 - 更新數量
 function updateCartQuantity(cartItemId, action) {
   // 取得原本的 quantity
-  let originQuantity = cartData.filter(
+  let originQuantity = cartData.find(
     (product) => product.id === cartItemId
-  )[0].quantity;
+  ).quantity;
+
+  if (originQuantity <= 1 && action === "minus") {
+    deleteCartItem(cartItemId);
+    return;
+  }
 
   const rules = {
     add: (quantity) => quantity + 1,
-    minus: (quantity) => {
-      if (quantity <= 1) {
-        deleteCartItem(cartItemId);
-        return;
-      }
-      return quantity - 1;
-    },
+    minus: (quantity) => quantity - 1,
   };
 
   axios
-    .patch(`${apiBase}/api/livejs/v1/customer/${apiPath}/carts`, {
+    .patch(`${customerApi}/carts`, {
       data: {
         id: cartItemId,
         quantity: rules[action](originQuantity),
@@ -179,10 +204,9 @@ function updateCartQuantity(cartItemId, action) {
 function clearCart() {
   if (!cartData.length) return;
   axios
-    .delete(`${apiBase}/api/livejs/v1/customer/${apiPath}/carts`)
+    .delete(`${customerApi}/carts`)
     .then((res) => {
       cartData = res.data.carts;
-      console.log(res.data.carts);
       renderCartList(cartData);
     })
     .catch((err) => {
@@ -193,9 +217,8 @@ function clearCart() {
 // 購物車 - 刪除「購物車特定品項」邏輯
 function deleteCartItem(cartItemId) {
   axios
-    .delete(`${apiBase}/api/livejs/v1/customer/${apiPath}/carts/${cartItemId}`)
+    .delete(`${customerApi}/carts/${cartItemId}`)
     .then((res) => {
-      console.log("deleteCart", res.data.carts);
       cartData = res.data.carts;
       renderCartList(cartData);
     })
@@ -245,7 +268,6 @@ function handleCartEvent(e) {
 // 訂單 -（客戶）送出訂單邏輯
 function submitOrder(order) {
   if (cartData.length === 0) {
-    console.log("請先新增品項至購物車");
     return;
   }
 
@@ -262,12 +284,20 @@ function submitOrder(order) {
   };
 
   axios
-    .post(`${apiBase}/api/livejs/v1/customer/${apiPath}/orders`, orderData)
+    .post(`${customerApi}/orders`, orderData)
     .then((res) => {
       getCarts();
+      Toast.fire({
+        icon: "success",
+        title: "訂單成功送出",
+      });
     })
     .catch((err) => {
-      console.log(err.response.data.message || "送出訂單失敗");
+      console.log(err);
+      Toast.fire({
+        icon: "error",
+        title: "送出訂單失敗",
+      });
     })
     .finally(() => {
       orderForm.reset();
@@ -311,7 +341,9 @@ function handleSubmitOrder(e) {
   const errors = checkOrderFormValue();
 
   if (errors) {
+    console.log(errors);
     Object.keys(errors).forEach((key) => {
+      console.log(key);
       const errorMsg = document.querySelector(`[data-message="${key}"]`);
       errorMsg.classList.add("block");
     });
